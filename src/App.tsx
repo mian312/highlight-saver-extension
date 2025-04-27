@@ -5,11 +5,13 @@ interface Highlight {
   text: string;
   url: string;
   timestamp: number;
+  summary?: string;
 }
 
 function App() {
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSummarizing, setIsSummarizing] = useState<number | null>(null);
 
   useEffect(() => {
     console.log('App component mounted, fetching highlights...');
@@ -38,6 +40,33 @@ function App() {
       );
       chrome.storage.local.set({ highlights: updatedHighlights });
       setHighlights(updatedHighlights);
+    });
+  };
+
+  const summarizeHighlight = (timestamp: number) => {
+    setIsSummarizing(timestamp);
+    
+    const highlight = highlights.find(h => h.timestamp === timestamp);
+    if (!highlight) return;
+    
+    chrome.runtime.sendMessage({
+      action: 'summarizeHighlight',
+      data: { text: highlight.text }
+    }, (response) => {
+      if (response && response.success) {
+        const updatedHighlights = highlights.map(h => {
+          if (h.timestamp === timestamp) {
+            return { ...h, summary: response.summary };
+          }
+          return h;
+        });
+        
+        chrome.storage.local.set({ highlights: updatedHighlights });
+        setHighlights(updatedHighlights);
+      } else {
+        console.error('Failed to summarize:', response);
+      }
+      setIsSummarizing(null);
     });
   };
 
@@ -103,7 +132,28 @@ function App() {
                     </a>
                   </div>
                   <blockquote className="highlight-text">{highlight.text}</blockquote>
+                  
+                  {highlight.summary && (
+                    <div className="highlight-summary">
+                      <h4>Summary:</h4>
+                      <p>{highlight.summary}</p>
+                    </div>
+                  )}
+                  
                   <div className="highlight-actions">
+                    {isSummarizing === highlight.timestamp ? (
+                      <button className="summarize-button loading" disabled>
+                        Summarizing...
+                      </button>
+                    ) : (
+                      <button 
+                        className="summarize-button"
+                        onClick={() => summarizeHighlight(highlight.timestamp)}
+                        disabled={!!highlight.summary}
+                      >
+                        {highlight.summary ? 'Summarized' : 'Summarize'}
+                      </button>
+                    )}
                     <button 
                       className="delete-button"
                       onClick={() => deleteHighlight(highlight.timestamp)}

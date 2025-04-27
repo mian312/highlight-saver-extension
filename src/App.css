@@ -152,6 +152,52 @@ body {
   background-color: #fee2e2;
 }
 
+/* Add these styles for the summarize button and summary section */
+.summarize-button {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  margin-right: 0.75rem;
+  transition: background-color 0.2s;
+}
+
+.summarize-button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.summarize-button:disabled {
+  background-color: #93c5fd;
+  cursor: not-allowed;
+}
+
+.summarize-button.loading {
+  background-color: #93c5fd;
+  cursor: wait;
+}
+
+.highlight-summary {
+  background-color: #f3f4f6;
+  border-radius: 0.25rem;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.highlight-summary h4 {
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.highlight-summary p {
+  color: #1f2937;
+  line-height: 1.5;
+}
+
 /* Footer */
 .app-footer {
   text-align: center;

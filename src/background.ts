@@ -6,7 +6,17 @@ interface Highlight {
   text: string;
   url: string;
   timestamp: number;
+  summary?: string;
 }
+
+// Import OpenAI for Groq API compatibility
+import OpenAI from "openai";
+
+// Initialize the OpenAI client with Groq API settings
+const client = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: process.env.GROQ_API_URL || "https://api.groq.com/openai/v1"
+});
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log('Extension installed');
@@ -22,6 +32,32 @@ chrome.runtime.onInstalled.addListener(() => {
     }
   });
 });
+
+// Function to summarize text using Groq API
+async function summarizeText(text: string): Promise<string> {
+  try {
+    const response = await client.chat.completions.create({
+      model: process.env.GROQ_MODEL || "llama3-70b-8192",
+      messages: [
+        {
+          role: "system",
+          content: "You are a helpful assistant that summarizes text concisely in 1-2 sentences."
+        },
+        {
+          role: "user",
+          content: `Please summarize the following text in 1-2 sentences:\n\n${text}`
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 100
+    });
+    
+    return response.choices[0].message.content || "Unable to generate summary.";
+  } catch (error) {
+    console.error('Error summarizing text:', error);
+    return "Error generating summary. Please try again.";
+  }
+}
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -45,6 +81,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: true });
       });
     });
+    
+    // Return true to indicate we'll respond asynchronously
+    return true;
+  }
+  
+  if (message.action === 'summarizeHighlight') {
+    // Handle summarization request
+    const { text } = message.data;
+    
+    // Use async/await with Promise to handle the asynchronous API call
+    (async () => {
+      try {
+        const summary = await summarizeText(text);
+        sendResponse({ success: true, summary });
+      } catch (error) {
+        console.error('Error in summarization:', error);
+        sendResponse({ success: false, error: String(error) });
+      }
+    })();
     
     // Return true to indicate we'll respond asynchronously
     return true;
